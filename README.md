@@ -1,102 +1,213 @@
-# Denoising Autoencoder for MNIST Grayscale Filters
+# Denoising Autoencoder — MNIST
 
-This repository implements a Convolutional Denoising Autoencoder, architected strictly following the `AI_EXPERT_COURSE` guidelines, built to process corrupted MNIST images and reconstruct their original clean states.
+A convolutional denoising autoencoder trained on the MNIST dataset. The model learns to reconstruct clean digit images from corrupted inputs across a range of noise intensities.
 
-## 🧠 The Core Idea
+---
 
-A **Denoising Autoencoder** is a neural network trained to ignore "noise" or corruptions in data. The architecture structurally bottlenecks the input data into a dense, lower-dimensional representation (the Latent Space) before decoding it back to its original dimensions. 
-Because the bottleneck is too small to memorize random statistical noise, but large enough to retain structural features, the network is forces to learn the _true_ underlying distribution of the data. 
-In our approach, we deliberately corrupt MNIST digit images with Gaussian noise (at levels varying from 0.01% up to 10%) and use the network to reconstruct the clean image using Mean Squared Error (MSE) loss against the uncorrupted variant.
-
-## 📂 Project Structure
+## Project Schema & Data Flow
 
 ```text
-L43-Homework/
-│
-├── assets/
-│   ├── evaluation_noise_levels.png   # Inference results grid
-│   └── training_curve.png            # Loss metrics curve over 10 epochs
-│
-├── data/                             # MNIST dataset (Auto-downloaded via torchvision)
-├── models/                           # Saved weights (.pth files)
-│   └── denoising_autoencoder.pth
-│
-├── config.py                         # Centralized configuration & hyperparameters
-├── datasets.py                       # Data loading and dynamic NoiseInjection pipeline
-├── evaluate.py                       # Post-training variable noise stress testing
-├── interactive_noise.ipynb           # Jupyter Widget Slider for noise demonstration
-├── main.py                           # Orchestration logic
-├── model.py                          # PyTorch Conv2D Autoencoder Class Definition
-├── requirements.txt                  # Python dependencies
-├── train.py                          # Training loop and plotting metrics
-└── README.md                         # This comprehensive document
+┌──────────────────────────────────────────────────────────────────────────────┐
+│                              TRAINING PIPELINE                               │
+│                                                                              │
+│  MNIST                add_noise()             DenoisingAutoencoder           │
+│  ┌──────────┐    ┌────────────────────┐    ┌───────────────────────────┐     │
+│  │ Clean x  │───▶│ Random noise level │───▶│  Encoder                  │     │
+│  │ [1×28×28]│    │ drawn natively     │    │  Conv 1×28×28→16×14×14    │     │
+│  └──────────┘    │ from Gaussian      │    │  Conv 16×14×14→32×7×7     │     │
+│                  └────────────────────┘    │  Conv 32×7×7→64×1×1       │     │
+│                           │                └───────────┬───────────────┘     │
+│                           │ Noisy x̃                    │ latent z            │
+│                           │                ┌───────────▼───────────────┐     │
+│                           │                │  Decoder                  │     │
+│                           │                │  ConvT 64×1×1→32×7×7      │     │
+│                           │                │  ConvT 32×7×7→16×14×14    │     │
+│                           │                │  ConvT 16×14×14→1×28×28   │     │
+│                           │                │  Sigmoid → x̂  [0,1]      │     │
+│                           │                └───────────┬───────────────┘     │
+│                           │                            │                     │
+│  Loss = MSE(x̂, x_clean) ◀──────────────────────────────┘                    │
+│  ▲ compared to CLEAN original, NOT the noisy input                           │
+└──────────────────────────────────────────────────────────────────────────────┘
+
+┌──────────────────────────────────────────────────────────────────────────────┐
+│                             EVALUATION PIPELINE                              │
+│                                                                              │
+│  Test set (clean)  →  add fixed noise level  →  model(noisy)                 │
+│  Noise swept: 0.00%, 0.50%, 1.00%, … 10.00%  (21 levels, step 0.5%)          │
+│  Metrics per level: MSE mean/std · PSNR mean/std · SSIM mean/std             │
+│  Outputs: evaluation_stats.csv · metrics_vs_noise.png                        │
+└──────────────────────────────────────────────────────────────────────────────┘
 ```
 
-## 🏗️ Data Flow / Architecture
+---
 
-Our Autoencoder features a highly symmetrical convolutional design to capture spatial hierarchies seamlessly. 
+## File Structure
 
-1. **Input**: A corrupted image Tensor of shape `[Batch, 1, 28, 28]`.
-2. **Encoder**: 
-   - Uses `Conv2d` blocks with `kernel_size=3, stride=2` to progressively downsample the spatial resolution while increasing depth channels from 1 -> 16 -> 32 -> 64.
-   - The final encoded Latent Representation is shape `[Batch, 64, 1, 1]`.
-3. **Decoder**:
-   - Mirrors the Encoder using `ConvTranspose2d` layers.
-   - Upsamples the `[1,1]` tensor back through `[7,7]` -> `[14,14]` -> `[28,28]`.
-   - Uses a `Sigmoid()` activation constraint at the very end to guarantee the output values bound perfectly between `[0.0, 1.0]`, matching the original image constraints.
+```text
+.
+├── config.py                 # Hyperparameters and paths (single source of truth)
+├── datasets.py               # Noise injection transform and DataLoaders
+├── model.py                  # Encoder, Decoder, DenoisingAutoencoder class
+├── train.py                  # Training loop, checkpoint save, loss curve plot
+├── evaluate.py               # Metric computation, CSV export, all plots
+├── main.py                   # Entry point — calls train() then evaluate()
+├── interactive_noise.ipynb   # Interactive widget for demonstrating noise
+├── requirements.txt          # Python dependencies
+├── assets/
+│   ├── training_curve.png          # MSE loss per epoch
+│   ├── metrics_vs_noise.png        # MSE / PSNR / SSIM vs noise level
+│   ├── sample_reconstructions.png  # Clean/Noisy/Recon visual grid
+│   └── evaluation_stats.csv        # Full metrics table across sweeps
+├── models/
+│   └── denoising_autoencoder.pth   # Saved model weights
+└── data/                           # Auto-downloaded MNIST
+```
 
-## 📊 Results
+---
 
-### Training Loss
-The Denoising Autoencoder converged quickly across 10 epochs, proving the network rapidly learned to interpolate and ignore the random Gaussian static applied.
+## Architecture
 
-![Training Loss](assets/training_curve.png)
+### Encoder
 
-### Variable Noise Inferences
-Below are the reconstructed outputs of the network when exposed to varying degrees of data corruption during testing: `1%`, `3%`, `6%`, and `10%` noise.
+Progressively maps spatial dimensions downwards while increasing channels, compressing the image into a deep latent spatial bottleneck.
 
-![Evaluation Results](assets/evaluation_noise_levels.png)
+| Layer | Input | Output | Operation |
+|-------|-------|--------|-----------|
+| Conv2d + ReLU | 1×28×28 | 16×14×14 | kernel 3, stride 2, pad 1 |
+| Conv2d + ReLU | 16×14×14 | 32×7×7 | kernel 3, stride 2, pad 1 |
+| Conv2d + ReLU | 32×7×7 | 64×1×1 | kernel 7, stride 1, pad 0 |
 
-## 🔍 Honest Assessment
+### Decoder
 
-**What Worked Excellently:**
-- The network mastered discarding low levels of noise (`1%` and `3%`). It smoothly identified the continuous shapes of the digits through the static. 
-- The convolutional blocks provided immediate geometric spatial awareness, making the structural integrity of the number very sharp.
+Mirrors the encoder with transposed convolutions to restore the original 28×28 spatial resolution smoothly.
 
-**What Underperformed & Why:**
-- At the extreme `10%` noise injection level, the network's constraints begin to show. A noise level this high on standard unscaled pixel intensities causes severe blurring where the digit edges meet the static background. The Reconstruction mechanism (via Mean Squared Error) tends to naturally generate somewhat "blurry" interpretations because it acts as a statistical mean estimator over the possible variations. At extreme static interference, the MSE loss minimizes effectively by smudging the edges aggressively rather than predicting sharp lines.
+| Layer | Input | Output | Operation |
+|-------|-------|--------|-----------|
+| ConvTranspose2d + ReLU | 64×1×1 | 32×7×7 | kernel 7, stride 1, pad 0 |
+| ConvTranspose2d + ReLU | 32×7×7 | 16×14×14 | kernel 3, stride 2, pad 1, out_pad 1 |
+| ConvTranspose2d + **Sigmoid** | 16×14×14 | **1×28×28** | kernel 3, stride 2, pad 1, out_pad 1 |
 
-## 🚀 What Needs to Be Done (Next Steps)
+### Loss function
 
-| Identified Issue | Proposed Solution |
-| :--- | :--- |
-| **Blurry Reconstructions at 10% Noise** | Switch the loss function from plain `MSELoss` to `SSIM (Structural Similarity Index Measure)`. SSIM focuses heavily on perceived human structural sharpness rather than mathematically safe pixel averaging. |
-| **Difficulty Recognizing Edge Contrast** | Incorporate a `BCEWithLogitsLoss` combined with the MSE, or add a mild Perceptual Loss component (using a frozen pre-trained network) to penalize blurriness explicitly. |
-| **Model Size Constraints** | Test deeper Residual Blocks (`ResNet` style) to allow greater feature retention without expanding grid dimensionality prematurely. |
+```text
+Loss = MSE(x̂, x_clean)
+```
 
-## 🛠️ Setup & Usage
+The loss is computed against the **original clean image**, not the noisy input. This forces the model to learn the structural integrity of the digits rather than memorising the static overlay.
 
-To spin up this project effectively on your local machine, navigate to the `L43-Homework` directory and execute the following:
+---
 
-**1. Create a Python Virtual Environment**
-- *Windows:* `python -m venv venv && venv\Scripts\activate`
-- *Linux/macOS:* `python3 -m venv venv && source venv/bin/activate`
+## Quick Start
 
-**2. Install Dependencies**
+### 1. Create and activate a virtual environment
+
+```bash
+python -m venv venv
+# Windows
+venv\Scripts\activate
+# macOS / Linux
+# source venv/bin/activate        
+```
+
+### 2. Install dependencies
+
 ```bash
 pip install -r requirements.txt
 ```
 
-**3. Run the Interactive Noise Slider (Requirement #3)**
-```bash
-jupyter notebook interactive_noise.ipynb
-```
+### 3. Train and evaluate
 
-**4. Execute the Training and Evaluation Pipeline**
 ```bash
 python main.py
 ```
-*(Model weights will be saved to `models/` automatically, and inference plots will appear in `assets/`)*
 
-## 💿 Dataset Attribution
-This project relies on the classic [MNIST Database of Handwritten Digits](http://yann.lecun.com/exdb/mnist/) cultivated by Yann LeCun, Corinna Cortes, and Christopher J.C. Burges. The dataset is fetched dynamically during pipeline initialization via `torchvision.datasets.MNIST`.
+The script will:
+1. Download MNIST automatically into `./data/`
+2. Train for 10 epochs on GPU if available
+3. Save the model to `./models/denoising_autoencoder.pth`
+4. Evaluate across 21 noise levels (0.00 % → 10.00 % in 0.5 % steps)
+5. Write all plots and the CSV to `./assets/`
+
+### Run only training or evaluation separately
+
+```bash
+python train.py      # train and save weights
+python evaluate.py   # load saved weights and evaluate
+```
+
+### Key hyperparameters (edit `config.py`)
+
+| Parameter | Default | Description |
+|-----------|---------|-------------|
+| `EPOCHS` | 10 | Training epochs |
+| `BATCH_SIZE` | 128 | Batch size |
+| `LEARNING_RATE` | 1e-3 | Adam learning rate |
+| `TRAIN_NOISE_FACTOR` | 0.1 | Default train noise magnitude (10%) |
+
+---
+
+## Results & Analysis
+
+### Training loss
+
+![Training Loss](assets/training_curve.png)
+
+The loss followed a very steep exponential decay within the first 2 epochs, plummeting as the model rapidly mapped out the core outlines of the numeric digits. Afterward, it settled into a gentle curve reaching a stable minimum MSE of around **0.003**.
+
+---
+
+### Reconstruction quality vs. noise level
+
+![Metrics vs Noise](assets/metrics_vs_noise.png)
+
+**MSE (lower = better)**
+The reconstruction error rises smoothly but stays below 0.005 even at the maximum testing extremity of 10% noise. The variance is consistent, demonstrating the autoencoder behaves symmetrically across most digit classes.
+
+**PSNR (higher = better)**
+Peak Signal-to-Noise Ratio starts high (nearly 30 dB) when practically zero noise is applied, meaning the autoencoder is an excellent straight passthrough mechanism. At 10% severe distortion, it drops toward roughly 23-24 dB, which is still comfortably above the 20 dB accepted visual quality threshold.
+
+**SSIM (higher = better, max = 1)**
+Structural Similarity tracks brilliantly. Even near zero noise, it scores well above 0.95. At the 10% extreme tested parameter, it only deteriorates to approximately 0.70. Since SSIM aggressively punishes blurriness—which MSE loss inherently creates on noisy edges—remaining above 0.7 at 10% corruption proves the model retained the categorical edge bounds of the digits securely.
+
+---
+
+### Visual reconstructions
+
+![Sample Reconstructions](assets/sample_reconstructions.png)
+
+Each row sweeps from Clean (0%) to Noisy (various bounds) to the Reconstructed final result. The network clears out the scattered static beautifully while resisting heavy blurring on the structural outlines of the original numbers. 
+
+---
+
+## Output files
+
+| File | Description |
+|------|-------------|
+| `models/denoising_autoencoder.pth` | PyTorch model weights |
+| `assets/training_curve.png` | MSE loss curve over epochs |
+| `assets/metrics_vs_noise.png` | MSE / PSNR / SSIM vs noise level (0–10 %) |
+| `assets/sample_reconstructions.png` | Visual Clean/Noisy/Recon grid |
+| `assets/evaluation_stats.csv` | Per-level mean and std for all three metrics |
+
+---
+
+## Dependencies
+
+| Package | Purpose |
+|---------|---------|
+| `torch` + `torchvision` | Model, training, dataset |
+| `numpy` | Numerical operations |
+| `pandas` | Sweeping Metrics CSV exporting |
+| `matplotlib` | Plotting |
+| `scikit-image` | PSNR and SSIM metrics |
+| `tqdm` | Progress bars |
+| `ipywidgets` | Jupyter Notebook interactive UI components |
+
+---
+
+## Dataset
+
+**MNIST** — handwritten digits dataset formulated by Yann LeCun, Corinna Cortes, and Christopher J.C. Burges.
+
+The dataset consists of 70,000 grayscale 28×28 images across 10 digit categories (0 through 9). The dataset is downloaded automatically by `torchvision.datasets.MNIST` on first run and cached in `./data/`.
