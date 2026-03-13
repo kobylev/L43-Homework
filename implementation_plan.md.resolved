@@ -1,0 +1,62 @@
+# Denoising Autoencoder Implementation Plan
+
+This plan details the process of building a Denoising Autoencoder on the MNIST dataset, designed precisely to the specifications requested, and organized according to the strictly required modular `AI_EXPERT_COURSE` guidelines.
+
+## User Review Required
+
+Please review the architecture and testing setup below. Note that requirement #3 asks for an interactive slider to demonstrate noise before training. Because standard terminal scripts don't naturally support interactive sliders, I propose generating a Jupyter Notebook specifically for the visual slider (e.g., `interactive_noise.ipynb`) or incorporating an `ipywidgets` script alongside the modular training pipeline. Let me know if you approve this approach!
+
+## Proposed Changes
+
+We will use PyTorch to build and train the Autoencoder on the MNIST dataset.
+
+### Project Modularity and core scripts
+
+We will build the codebase inside `c:/Ai_Expert/L43-Homework`.
+
+#### [NEW] [config.py](file:///c:/Ai_Expert/L43-Homework/config.py)
+Will contain the configuration definitions: paths, training hyperparameters (epochs, learning rate, batch size), minimum and maximum noise levels (0.01% - 10%), and device configuration.
+
+#### [NEW] [datasets.py](file:///c:/Ai_Expert/L43-Homework/datasets.py)
+Responsible for fetching the MNIST dataset and defining the `NoiseTransform`. It will add random noise (normal distribution) bound by a noise factor to simulate the requested 0.01% - 10% disturbance before feeding images into the network.
+
+#### [NEW] [model.py](file:///c:/Ai_Expert/L43-Homework/model.py)
+Will define the PyTorch architecture for the `DenoisingAutoencoder`. It will feature a fairly simple symmetric Encoder-Decoder structure with Conv2D layers to effectively map the noisy input (28x28 grayscale) down to a latent space and then aggressively scale it back to reconstructed 28x28 clean outputs.
+
+#### [NEW] [train.py](file:///c:/Ai_Expert/L43-Homework/train.py)
+Implements the training and validation loops. It will ingest the noisy images as input, use MSELoss against the clean original images, and execute backpropagation to teach the network how to ignore the noise.
+
+#### [NEW] [evaluate.py](file:///c:/Ai_Expert/L43-Homework/evaluate.py)
+Conducts the post-training examination requested in Step #5. It will infer results under at least 4 different noise levels (e.g., 1%, 3%, 6%, and 10%) to examine the network's behavior across a varying spectrum of difficulty and save comparison results to `assets/`.
+
+#### [NEW] [interactive_noise.ipynb](file:///c:/Ai_Expert/L43-Homework/interactive_noise.ipynb)
+A standalone Jupyter notebook using `ipywidgets` designed exclusively to satisfy requirement #3: an interactive visual slider that renders images dynamically as noise levels are increased from 0.01% to 10%. 
+
+#### [NEW] [main.py](file:///c:/Ai_Expert/L43-Homework/main.py)
+The orchestrator. It imports and sequences dataset setup, model initialization, the training run from `train.py`, and triggers the evaluation script from `evaluate.py`. 
+
+#### [NEW] [requirements.txt](file:///c:/Ai_Expert/L43-Homework/requirements.txt)
+Includes `torch`, `torchvision`, `matplotlib`, `numpy`, `jupyter`, and `ipywidgets`.
+
+### Documentation and Assets
+
+#### [NEW] [README.md](file:///c:/Ai_Expert/L43-Homework/README.md)
+Will be meticulously crafted using the AI Expert formatting structure, encompassing:
+1. Title and Overview
+2. The Core Idea (Denoising Autoencoders)
+3. Project Structure
+4. Data Flow / Architecture
+5. Results (Generated plot images)
+6. Honest Assessment (Analyzing how it performed at 10% noise)
+7. What Needs to Be Done (Next Steps)
+8. Setup & Usage
+9. Dataset details
+
+## Verification Plan
+
+### Automated Tests
+* We will verify the `interactive_noise.ipynb` rendering capabilities.
+* We will run `python main.py` completely to test the flow, generate checkpoints, evaluation images, and plot data.
+
+### Manual Verification
+* The user will review the generated graphs and the README layout to assure all requirements of the AI Expert skill and homework specifications are met.
