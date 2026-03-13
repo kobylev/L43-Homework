@@ -23,7 +23,7 @@ A convolutional denoising autoencoder trained on MNIST. The model learns to reco
 │                           │                │  ConvT 64×1×1→32×7×7    │      │
 │                           │                │  ConvT 32×7×7→16×14×14  │      │
 │                           │                │  ConvT 16×14×14→1×28×28 │      │
-│                           │                │  Sigmoid → x̂  [0,1]    │       │
+│                           │                │  Sigmoid → x̂  [0,1]     │      │
 │                           │                └───────────┬─────────────┘      │
 │                           │                            │                    │
 │  Loss = MSE(x̂, x_clean) ◀──────────────────────────────┘                    │
