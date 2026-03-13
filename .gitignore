@@ -17,3 +17,5 @@ data/
 # Python Cache
 __pycache__/
 *.py[cod]
+
+implementation_plan.md.resolved
