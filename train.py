@@ -1,43 +1,4 @@
-import torch
-import torch.nn as nn
-import torch.optim as optim
-import os
-import matplotlib.pyplot as plt
-
-import config
-from model import DenoisingAutoencoder
-from datasets import get_dataloaders
-
 def train_model():
-    print("Initializing Data Loaders...")
-    train_loader, val_loader = get_dataloaders()
-    
-    print("Initializing Model...")
-    model = DenoisingAutoencoder().to(config.DEVICE)
-    
-    # Loss Function: Mean Squared Error (to measure pixel-by-pixel difference)
-    criterion = nn.MSELoss()
-    optimizer = optim.Adam(model.parameters(), lr=config.LEARNING_RATE)
-    
-    train_losses = []
-    val_losses = []
-    
-    print(f"Starting Training for {config.EPOCHS} Epochs on {config.DEVICE}...")
-    
-    for epoch in range(config.EPOCHS):
-        model.train()
-        running_train_loss = 0.0
-        
-        # Training Phase
-        for noisy_imgs, clean_imgs in train_loader:
-            noisy_imgs, clean_imgs = noisy_imgs.to(config.DEVICE), clean_imgs.to(config.DEVICE)
-            
-            # Forward pass
-            outputs = model(noisy_imgs)
-            loss = criterion(outputs, clean_imgs)
-            
-            # Backward and optimize
-            optimizer.zero_grad()
             loss.backward()
             optimizer.step()
             
