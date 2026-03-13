@@ -8,7 +8,7 @@ A convolutional denoising autoencoder trained on MNIST. The model learns to reco
 
 ```
 ┌─────────────────────────────────────────────────────────────────────────────┐
-│                          TRAINING PIPELINE                                 │
+│                          TRAINING PIPELINE                                  │
 │                                                                             │
 │  MNIST                add_noise()             DenoisingAutoencoder          │
 │  ┌──────────┐    ┌────────────────────┐    ┌──────────────────────────┐     │
@@ -23,20 +23,20 @@ A convolutional denoising autoencoder trained on MNIST. The model learns to reco
 │                           │                │  ConvT 64×1×1→32×7×7    │      │
 │                           │                │  ConvT 32×7×7→16×14×14  │      │
 │                           │                │  ConvT 16×14×14→1×28×28 │      │
-│                           │                │  Sigmoid → x̂  [0,1]    │      │
+│                           │                │  Sigmoid → x̂  [0,1]    │       │
 │                           │                └───────────┬─────────────┘      │
-│                           │                            │                   │
-│  Loss = MSE(x̂, x_clean) ◀──────────────────────────────┘                   │
+│                           │                            │                    │
+│  Loss = MSE(x̂, x_clean) ◀──────────────────────────────┘                    │
 │  ▲ compared to CLEAN original, NOT the noisy input                          │
 └─────────────────────────────────────────────────────────────────────────────┘
 
 ┌─────────────────────────────────────────────────────────────────────────────┐
-│                          EVALUATION PIPELINE                               │
+│                          EVALUATION PIPELINE                                │
 │                                                                             │
-│  Test set (clean)  →  add fixed noise level  →  model(noisy)               │
-│  Noise swept: 0.00%, 0.50%, 1.00%, … 10.00%  (21 levels, step 0.5%)        │
-│  Metrics per level: MSE mean/std · PSNR mean/std · SSIM mean/std           │
-│  Outputs: evaluation_stats.csv · metrics_vs_noise.png                      │
+│  Test set (clean)  →  add fixed noise level  →  model(noisy)                │
+│  Noise swept: 0.00%, 0.50%, 1.00%, … 10.00%  (21 levels, step 0.5%)         │
+│  Metrics per level: MSE mean/std · PSNR mean/std · SSIM mean/std            │
+│  Outputs: evaluation_stats.csv · metrics_vs_noise.png                       │
 └─────────────────────────────────────────────────────────────────────────────┘
 ```
 
