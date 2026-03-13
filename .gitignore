@@ -2,7 +2,7 @@
 models/
 *.pth
 *.pt
-
+*.resolved
 # Jupyter
 .ipynb_checkpoints/
 
